@@ -1,0 +1,14 @@
+config:
+  environments:
+    appservice-tests:
+      target: "#{URL-TARGET-LOAD-TESTS}#"
+      phases:
+        - name: "Load Test Periodico"
+          duration: 20
+          arrivalRate: 30
+          rampTo: 50
+scenarios:
+  - name: "Pagina inicial"
+    flow:
+    - get:
+        url: "/"

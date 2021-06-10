@@ -1,0 +1,68 @@
+# Site do Artillery.io:
+# https://artillery.io/
+#
+# Para mais informações sobre o Artillery.io acesse este artigo
+# https://renatogroffe.medium.com/artillery-io-testes-de-carga-e-gera%C3%A7%C3%A3o-de-relat%C3%B3rios-html-b122def91df2
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  urlTarget: URL PARA TESTES
+  yamlLoadTests: ./Tests/load-tests-sitecontagem.yml
+  environmentLoadTests: appservice-tests
+  resultsJson: ./Tests/results.json
+  resultsHtml: ./Tests/results.html
+
+schedules:
+- cron: "*/5 * * * *"
+  branches:
+    include:
+      - main
+  displayName: Load Tests a cada 5 min
+  # always = true indica execução mesmo sem mudanças
+  always: true
+
+steps:
+- script: ls
+  displayName: 'Exibir arquivos no diretório-raiz do repositório'
+
+- script: npm install artillery
+  displayName: 'Instalar Artillery.io'
+
+- script: npx artillery -V
+  displayName: 'Exibir versão do Artillery.io'
+
+- task: replacetokens@3
+  inputs:
+    targetFiles: '$(yamlLoadTests)'
+    encoding: 'auto'
+    writeBOM: true
+    actionOnMissing: 'warn'
+    keepToken: false
+    tokenPrefix: '#{'
+    tokenSuffix: '}#'
+    useLegacyPattern: false
+    defaultValue: '$(urlTarget)'
+    enableTransforms: false
+    enableTelemetry: false
+  displayName: Configurar YAML para com a URL para testes
+
+- script: cat $(yamlLoadTests)
+  displayName: Exibir conteúdo do YAML com definições de testes
+
+- script: npx artillery run -o $(resultsJson) -e $(environmentLoadTests) $(yamlLoadTests)
+  displayName: Execução de testes de carga usando arquivo YAML
+
+- script: npx artillery report -o $(resultsHtml) $(resultsJson)
+  displayName: Geração de arquivo HTML com o resultado dos testes
+
+- script: |
+    cd ./Tests
+    ls
+  displayName: 'Exibir arquivos no diretório Tests'
+
+- task: PublishHtmlReport@1
+  inputs:
+    reportDir: '$(resultsHtml)'
+  displayName: Publicar HTML com resultados
